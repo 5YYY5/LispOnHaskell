@@ -2,11 +2,9 @@ module Lexer (tokenize, showTokens) where
 
 import Types
 import Data.Char (isSpace, isAlpha, isDigit, toUpper)
-import Data.List (intercalate)
-import Debug.Trace (trace)
 
 showTokens :: [Token] -> [Token]
-showTokens tokens = trace (intercalate "\n" (map show tokens ++ [""])) tokens
+showTokens = id
 
 tokenize :: String -> Either String [Token]
 tokenize str = scanTokens str 0 0

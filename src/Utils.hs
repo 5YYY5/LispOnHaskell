@@ -14,8 +14,6 @@ module Utils
     , getInt              -- Either String Int
     , getFloat            -- Either String Float
     , deepSeqTree         -- Either String (ExprTree a)
-    , eval                -- ()
-    , evalList            -- ()
     , showToken
     , showSExprVal
     , replaceLeafExpr
@@ -119,20 +117,10 @@ getFloat :: ExprTree SExpr -> Either String Float
 getFloat (LeafExpr (SAtomExpr (Token _ _ (FloatVal num)))) = Right num
 getFloat _ = Left "Это не является числом с плавающей точкой"
 
--- | Глубокое форсирование вычисления дерева выражений
+-- | Возвращает последнее выражение из списка
 deepSeqTree :: [ExprTree a] -> Either String (ExprTree a)
 deepSeqTree [] = Left "deepSeqTree: empty list"
-deepSeqTree (x:xs) = Right (foldl' (\_ tree -> eval tree `seq` tree) x xs)
-
--- | Форсирование вычисления одного узла
-eval :: ExprTree a -> ()
-eval (LeafExpr x)   = x `seq` ()
-eval (NodeExpr children) = evalList children `seq` ()
-
--- | Форсирование вычисления списка узлов
-evalList :: [ExprTree a] -> ()
-evalList [] = ()
-evalList (t:ts) = eval t `seq` evalList ts
+deepSeqTree (x:xs) = Right (foldl' (\_ tree -> tree) x xs)
 
 -- | Преобразование токена в строку для отладки
 showToken :: Token -> String

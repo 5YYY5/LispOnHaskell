@@ -58,10 +58,22 @@ evaluateSimpleExpr :: ExprTree SExpr -> [Definition] -> EvalM (ExprTree SExpr)
 evaluateSimpleExpr (LeafExpr sexpr) _ = pure (LeafExpr sexpr)
 evaluateSimpleExpr (NodeExpr []) _ = throwError "evaluateSimpleExpr: empty function call"
 evaluateSimpleExpr (NodeExpr (fexpr:args)) def = do
-    evaluatedArgs <- evalArgs args def
     fun <- getFunctionFromExpr fexpr def
-    res <- fun evaluatedArgs
+    suppliedArgs <-
+        if isSpecialForm fexpr
+            then pure args
+            else evalArgs args def
+    res <- fun suppliedArgs
     pure (checkNil res)
+
+isSpecialForm :: ExprTree SExpr -> Bool
+isSpecialForm (LeafExpr (SAtomExpr (Token _ _ QuoteSym))) = True
+isSpecialForm (LeafExpr (SAtomExpr (Token _ _ (SymVal "QUOTE")))) = True
+isSpecialForm (LeafExpr (SAtomExpr (Token _ _ (SymVal "EVAL")))) = True
+isSpecialForm (LeafExpr (SAtomExpr (Token _ _ (SymVal "COND")))) = True
+isSpecialForm (LeafExpr (SAtomExpr (Token _ _ (SymVal "AND")))) = True
+isSpecialForm (LeafExpr (SAtomExpr (Token _ _ (SymVal "OR")))) = True
+isSpecialForm _ = False
 
 -- | Убирает лишний уровень списка (если результат – одноэлементный список с nil)
 checkNil :: ExprTree SExpr -> ExprTree SExpr
