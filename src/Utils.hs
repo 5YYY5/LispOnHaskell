@@ -25,7 +25,7 @@ module Utils
     ) where
 
 import Types
-import Data.List (foldl', intercalate)
+import Data.List (intercalate)
 
 -- | Безопасное получение элемента списка по индексу (поддерживает отрицательные индексы)
 getElement :: [a] -> Int -> Either String a
@@ -38,13 +38,14 @@ getElement (x:xs) n
 -- | Вырезает подсписок от first до last включительно (индексы могут быть отрицательными)
 sliceRange :: [a] -> Int -> Int -> [a]
 sliceRange [] _ _ = []
-sliceRange (x:xs) first last
-    | first < 0 = sliceRange (x:xs) (first + length (x:xs)) last
-    | last < 0 = sliceRange (x:xs) first (last + length (x:xs))
-    | first > last = sliceRange (x:xs) last first
-    | last == 0 = [x]
-    | first == 0 = x : sliceRange xs first (last - 1)
-    | first > 0 = sliceRange xs (first - 1) (last - 1)
+sliceRange (x:xs) first lastIdx
+    | first < 0 = sliceRange (x:xs) (first + length (x:xs)) lastIdx
+    | lastIdx < 0 = sliceRange (x:xs) first (lastIdx + length (x:xs))
+    | first > lastIdx = sliceRange (x:xs) lastIdx first
+    | lastIdx == 0 = [x]
+    | first == 0 = x : sliceRange xs first (lastIdx - 1)
+    | first > 0 = sliceRange xs (first - 1) (lastIdx - 1)
+    | otherwise = []
 
 -- | Проверка типа токена
 isTokenKind :: Token -> TokenKind -> Bool
@@ -120,7 +121,7 @@ getFloat _ = Left "Это не является числом с плавающе
 -- | Возвращает последнее выражение из списка
 deepSeqTree :: [ExprTree a] -> Either String (ExprTree a)
 deepSeqTree [] = Left "deepSeqTree: empty list"
-deepSeqTree (x:xs) = Right (foldl' (\_ tree -> tree) x xs)
+deepSeqTree lst = Right (last lst)
 
 -- | Преобразование токена в строку для отладки
 showToken :: Token -> String
@@ -163,6 +164,7 @@ replaceLeafExpr leafOld _ _ = leafOld
 replaceLeafExprLst :: ExprTree SExpr -> [String] -> [ExprTree SExpr] -> ExprTree SExpr
 replaceLeafExprLst body [] [] = body
 replaceLeafExprLst body (name:ns) (leaf:ls) = replaceLeafExprLst (replaceLeafExpr body name leaf) ns ls
+replaceLeafExprLst body _ _ = body
 
 -- | Преобразование дерева в "плоский" список (свёртка Node в SList)
 flattenTree :: ExprTree SExpr -> Either String (ExprTree SExpr)

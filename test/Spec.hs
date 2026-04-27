@@ -89,6 +89,20 @@ runFileCase = do
                 Left err -> failWith "execute test/test file" err
                 Right _ -> pass "execute test/test file"
 
+runUserFunctionsFileCase :: IO Bool
+runUserFunctionsFileCase = do
+    content <- readFile "test/user-functions.lisp"
+    res <- runProgram [] content
+    case res of
+        Left err -> failWith "execute user-functions.lisp file" err
+        Right defs ->
+            let exprs = takeExprs defs
+                firstResult = firstExprString defs
+                resultCount = length exprs
+            in if firstResult == "10" && resultCount == 6
+                then pass "execute user-functions.lisp file"
+                else failWith "execute user-functions.lisp file" ("expected first result 10 and 6 expressions, got " ++ firstResult ++ " and " ++ show resultCount)
+
 testCases :: [TestCase]
 testCases =
     [ ("add integers", "(+ 1 2)", ExpectRight "3")
@@ -117,7 +131,8 @@ main :: IO ()
 main = do
     results <- mapM assertCase testCases
     fileResult <- runFileCase
-    let allOk = and (fileResult : results)
+    userFunctionsFileResult <- runUserFunctionsFileCase
+    let allOk = and (userFunctionsFileResult : fileResult : results)
     if allOk
         then putStrLn "All tests passed."
         else error "Some tests failed."

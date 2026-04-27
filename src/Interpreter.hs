@@ -97,6 +97,7 @@ my_evaluateM ((ExprDef expr):xl) def = do
 -- | Вычисление одного дерева выражений
 evalTree :: ExprTree SExpr -> [Definition] -> EvalM (ExprTree SExpr)
 evalTree (LeafExpr sexpr) def = evaluateSimpleExpr (LeafExpr sexpr) def
+evalTree (NodeExpr []) _ = throwError "evalTree: empty expression"
 evalTree (NodeExpr (x:xl)) def = do
     computedX <- evalTree x def
     evaluateSimpleExpr (NodeExpr (computedX : xl)) def
@@ -113,6 +114,8 @@ lookupUserFunction tok def = findUserFunction tok def def
 findUserFunction :: Token -> [Definition] -> [Definition] -> EvalM ([ExprTree SExpr] -> EvalM (ExprTree SExpr))
 findUserFunction (Token n m (SymVal str)) [] _ =
     throwError $ "Not find function '" ++ str ++ "' at " ++ show n ++ "::" ++ show m
+findUserFunction (Token n m tokKind) [] _ =
+    throwError $ "Invalid function token '" ++ show tokKind ++ "' at " ++ show n ++ "::" ++ show m
 findUserFunction (Token n m (SymVal str)) ((FuncDef (UserFunc name pnames body)):xl) def
     | str == name = pure (\argVals -> applyUserFunction (UserFunc name pnames body) argVals def)
     | otherwise   = findUserFunction (Token n m (SymVal str)) xl def
@@ -159,7 +162,7 @@ evalCdr lst
 evalCons :: [ExprTree SExpr] -> Either String (ExprTree SExpr)
 evalCons ((LeafExpr sexpr):[(LeafExpr (SListExpr lst))]) = Right (LeafExpr (SListExpr (sexpr : lst)))
 evalCons ((LeafExpr sexpr):[(LeafExpr (SNilExpr tok))]) = Right (LeafExpr (SListExpr (sexpr : [SNilExpr tok])))
-evalCons ((LeafExpr sexpr):[(LeafExpr _)]) = Left "Wrong type argument: It is expected that the 'cons' second argument has the type 'list'."
+evalCons ((LeafExpr _):[(LeafExpr _)]) = Left "Wrong type argument: It is expected that the 'cons' second argument has the type 'list'."
 evalCons lst
     | allLeaf lst = Left "Wrong number of arguments: 'cons' is expected to contain 2 arguments."
     | otherwise = Left "Error: evalCons"
@@ -167,8 +170,8 @@ evalCons lst
 -- | cond
 evalCond :: [ExprTree SExpr] -> [Definition] -> EvalM (ExprTree SExpr)
 evalCond [] _ = pure nilExpr
-evalCond ((NodeExpr (pred:[expr])):xl) def = do
-    predVal <- evalTree pred def
+evalCond ((NodeExpr (predicateExpr:[expr])):xl) def = do
+    predVal <- evalTree predicateExpr def
     if isEqExprTree trueExpr predVal
         then evalTree expr def
         else evalCond xl def

@@ -34,8 +34,8 @@ readSExpr :: [Token] -> Either String (ExprTree SExpr)
 readSExpr [] = Left "Syntax error: Expected at least one list"
 readSExpr tokens = do
     first <- getElement tokens 0
-    last  <- getElement tokens (-1)
-    if isTokenKind first LParen && isTokenKind last RParen
+    lastTok <- getElement tokens (-1)
+    if isTokenKind first LParen && isTokenKind lastTok RParen
         then do
             let inner = sliceRange tokens 1 (-2)
             atom <- readAtom (takeList inner)
@@ -43,7 +43,7 @@ readSExpr tokens = do
             Right (NodeExpr (atom : exprs))
         else if isTokenKind first LParen
             then Left $ "Syntax error: Expected ')' at " ++
-                        show (getLinePos last) ++ "::" ++ show (getColPos last)
+                        show (getLinePos lastTok) ++ "::" ++ show (getColPos lastTok)
             else Left $ "Syntax error: Expected '(' at " ++
                         show (getLinePos first) ++ "::" ++ show (getColPos first)
 

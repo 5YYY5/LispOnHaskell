@@ -1,4 +1,11 @@
-module Types where
+module Types
+    ( TokenKind(..)
+    , Token(..)
+    , ExprTree(..)
+    , SExpr(..)
+    , Definition(..)
+    , UserFunc(..)
+    ) where
 
 -- Token types
 data TokenKind = LParen                -- (

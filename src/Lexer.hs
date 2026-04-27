@@ -47,7 +47,7 @@ skipComment (x:xl) line col
     | otherwise = scanTokens xl (line + 1) 0
 
 readSymbol :: String -> String -> Int -> Int -> Int -> Either String [Token]
-readSymbol [] [] line col startCol = Right [(Token line col EndOfFile)]
+readSymbol [] [] line col _ = Right [(Token line col EndOfFile)]
 readSymbol [] sym line col startCol = Right [Token line startCol (classifySymbol sym), Token line col EndOfFile]
 readSymbol (x:xl) sym line col startCol
     | isAlpha x || isDigit x || x == '_' = readSymbol xl (sym ++ [x]) line (col + 1) startCol
@@ -60,13 +60,13 @@ classifySymbol sym
     | otherwise = SymVal (map toUpper sym)
 
 readString :: String -> String -> Int -> Int -> Int -> Either String [Token]
-readString [] str line col startCol = Left $ "Unterminated string: " ++ str ++ " (reached end of file)"
+readString [] str _ _ _ = Left $ "Unterminated string: " ++ str ++ " (reached end of file)"
 readString (x:xl) str line col startCol
     | x /= '"' = readString xl (str ++ [x]) line (col + 1) startCol
     | otherwise = (Token line startCol (StrVal str) :) <$> scanTokens xl line (col + 1)
 
 readNumber :: String -> String -> Int -> Int -> Int -> Either String [Token]
-readNumber [] [] line col startCol = Right [(Token line col EndOfFile)]
+readNumber [] [] line col _ = Right [(Token line col EndOfFile)]
 readNumber [] digits line col startCol = Right [Token line startCol (IntVal (read digits)), Token line col EndOfFile]
 readNumber (x:xl) digits line col startCol
     | isDigit x = readNumber xl (digits ++ [x]) line (col + 1) startCol
@@ -74,7 +74,7 @@ readNumber (x:xl) digits line col startCol
     | otherwise = (Token line startCol (IntVal (read digits)) :) <$> scanTokens (x:xl) line col
 
 readFloatNum :: String -> String -> Int -> Int -> Int -> Either String [Token]
-readFloatNum [] [] line col startCol = Left "Unexpected parse error"
+readFloatNum [] [] _ _ _ = Left "Unexpected parse error"
 readFloatNum [] digits line col startCol
     | last digits /= '.' = Right [Token line startCol (FloatVal (read digits)), Token line col EndOfFile]
     | otherwise = Left "Parse error: Unterminated number (reached end of file)"

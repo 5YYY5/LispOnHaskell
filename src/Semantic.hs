@@ -21,7 +21,7 @@ analyzeSemanticsHelp ((NodeExpr ((LeafExpr (SAtomExpr (Token _ _ (SymVal "DEFUN"
                 case analyzeSemanticsHelp xl of
                     Left err -> Left err
                     Right rest -> Right (FuncDef (UserFunc name pnames yl) : rest)
-analyzeSemanticsHelp ((NodeExpr ((LeafExpr (SAtomExpr (Token n m (SymVal "DEFUN")))) : _)) : yl) =
+analyzeSemanticsHelp ((NodeExpr ((LeafExpr (SAtomExpr (Token n m (SymVal "DEFUN")))) : _)) : _) =
     Left $ "Invalid defun at " ++ show n ++ "::" ++ show m
 analyzeSemanticsHelp (x : xl) =
     case analyzeSemanticsHelp xl of

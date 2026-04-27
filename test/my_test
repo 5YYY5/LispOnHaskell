@@ -1,0 +1,6 @@
+(defun my_length (lst) (cond
+    ((null lst) 0)
+    (T (+ 1 (my_length (cdr lst))))
+))
+
+(print (my_length '(1 2 3 4 5)))

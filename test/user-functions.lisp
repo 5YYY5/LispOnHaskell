@@ -1,0 +1,10 @@
+(defun inc (x) (+ x 1))
+(defun add3 (x y z) (+ (+ x y) z))
+(defun is_positive (x) (> x 0))
+(defun first (lst) (car lst))
+
+(print (inc 9))
+(print (add3 1 2 3))
+(print (is_positive 7))
+(print (is_positive 0))
+(print (first '(A B C)))
