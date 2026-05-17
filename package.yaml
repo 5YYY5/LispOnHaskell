@@ -17,6 +17,10 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base >= 4.7 && < 5
 - mtl
+- gloss:
+    flags:
+    - GLFW
+    - -GLUT
 
 ghc-options:
 - -Wall
@@ -38,6 +42,7 @@ library:
   - Semantic
   - Interpreter
   - Utils
+  - Astvisual
 
 executables:
   my-project-exe:
@@ -49,6 +54,7 @@ executables:
     - -with-rtsopts=-N
     dependencies:
     - my-project
+    - gloss
 
 tests:
   my-project-test:

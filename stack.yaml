@@ -43,7 +43,10 @@ packages:
 # extra-deps: []
 
 # Override default flag values for project packages and extra-deps
-# flags: {}
+flags:
+  gloss:
+    GLFW: true
+    GLUT: false
 
 # Extra package databases containing global packages
 # extra-package-dbs: []
