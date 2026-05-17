@@ -3,4 +3,10 @@
     (T (+ 1 (my_length (cdr lst))))
 ))
 
+(defun my_multy (lst) (cond
+    ((null lst) 1)
+    (T (* (car lst) (my_multy (cdr lst))))
+))
+
 (print (my_length '(1 2 3 4 5)))
+(print (my_multy '(1 2 3 4 5)))

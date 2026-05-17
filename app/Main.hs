@@ -68,7 +68,7 @@ repl functional lastAST = do
                             Right result ->
                                 repl (takeFuns result) currentAST
 
--- Запуск файла с автоматической визуализацией AST
+-- Запуск файла с автоматической визуализацией ВСЕХ AST
 runFile :: FilePath -> IO ()
 runFile path = do
     content <- readFile path
@@ -80,10 +80,8 @@ runFile path = do
             case evalResult of
                 Left err -> putStrLn err
                 Right _  -> return ()
-            -- Показываем AST первого выражения (если есть)
-            case trees of
-                (t:_) -> showAST t
-                _     -> return ()
+            -- Показываем все деревья (каждое в своём окне по очереди)
+            mapM_ showAST trees
 
 selectMode :: IO ()
 selectMode = do

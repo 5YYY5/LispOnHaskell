@@ -1,36 +1,39 @@
+{- HLINT ignore "Parenthesize unary negation" -}
+{- HLINT ignore "Use tuple-section" -}
+{- HLINT ignore "Use fromMaybe" -}
 module Astvisual (visualizeAST) where
 
 import Data.Char (toUpper)
 import Graphics.Gloss
 import Types (ExprTree(..), SExpr(..), Token(..), TokenKind(..))
 
+-- Геометрия узлов
 nodeRadius :: Float
-nodeRadius   = 28
-
+nodeRadius   = 38
 nodeDiameter :: Float
 nodeDiameter = 2 * nodeRadius
-
 horizontalGap :: Float
-horizontalGap = 30
-
+horizontalGap = 40
 verticalGap :: Float
-verticalGap   = 80
+verticalGap   = 95
 
+-- Параметры пиксельного шрифта
 charPitch :: Float
-charPitch = 2.0
-
-strokeWidth :: Float
-strokeWidth = 1.4
-
+charPitch    = 2.4
+charSpacing :: Float
+charSpacing  = 2.2
 glyphHeight :: Int
-glyphHeight = 6
-
+glyphHeight  = 6
 glyphCols :: Int
-glyphCols = 5
-
+glyphCols    = 5
 maxLabelLen :: Int
-maxLabelLen = 12
+maxLabelLen  = 12
 
+-- Толщина штрихов букв
+strokeWidth :: Float
+strokeWidth = 1.6
+
+-- Визуализация (без автоматического масштабирования)
 visualizeAST :: ExprTree SExpr -> Picture
 visualizeAST tree =
     let (nodes, edges) = layoutSubtree (0, 0) tree
@@ -39,6 +42,7 @@ visualizeAST tree =
         , drawNodes nodes
         ]
 
+-- Ширина поддерева для позиционирования
 subtreeWidth :: ExprTree SExpr -> Float
 subtreeWidth (LeafExpr _)   = nodeDiameter
 subtreeWidth (NodeExpr children) =
@@ -47,6 +51,7 @@ subtreeWidth (NodeExpr children) =
         + fromIntegral (length children - 1) * horizontalGap
         )
 
+-- Рекурсивная раскладка: (координата корня, метка) + список рёбер
 layoutSubtree :: Point -> ExprTree SExpr -> ([(Point, String)], [(Point, Point)])
 layoutSubtree rootPos (LeafExpr sexpr) =
     ( [(rootPos, showSExprToken sexpr)]
@@ -71,6 +76,7 @@ placeChildren leftX (c:cs) yBase =
         x = leftX + w / 2
     in (x, yBase) : placeChildren (leftX + w + horizontalGap) cs yBase
 
+-- Преобразование SExpr в строку для отображения
 showSExprToken :: SExpr -> String
 showSExprToken (SAtomExpr (Token _ _ kind)) = tokenKindStr kind
 showSExprToken (SNilExpr _)                 = "NIL"
@@ -103,6 +109,7 @@ trimLabel s
     | length s <= maxLabelLen = s
     | otherwise               = take (maxLabelLen - 1) s ++ "~"
 
+-- Отрисовка одного узла
 drawNode :: (Point, String) -> Picture
 drawNode ((x, y), label) =
     Translate x y $ pictures
@@ -111,45 +118,67 @@ drawNode ((x, y), label) =
         , Color black $ drawStrokeLabel (trimLabel label)
         ]
 
-charWidth :: Float
-charWidth = fromIntegral glyphCols * charPitch
-
-glyphTopY :: Int -> Float
-glyphTopY row = fromIntegral (glyphHeight - row) * charPitch
-
-glyphBottomY :: Int -> Float
-glyphBottomY row = fromIntegral (glyphHeight - row - 1) * charPitch
-
+-- Рисование подписи утолщённым пиксельным шрифтом
 drawStrokeLabel :: String -> Picture
+drawStrokeLabel "" = blank   -- пустая подпись → пустая картинка
 drawStrokeLabel str =
-    let totalW = fromIntegral (length str) * charWidth
+    let totalW = fromIntegral (length str) * charAdvance
         centerY = fromIntegral glyphHeight * charPitch / 2
     in Translate (-totalW / 2) (-centerY) $
        pictures
-           [ Translate (fromIntegral i * charWidth) 0 (drawStrokeChar c)
+           [ Translate (fromIntegral i * charAdvance) 0 (drawStrokeChar c)
            | (i, c) <- zip ([0 ..] :: [Int]) str
            ]
+
+charAdvance :: Float
+charAdvance = fromIntegral glyphCols * charPitch + charSpacing
 
 drawStrokeChar :: Char -> Picture
 drawStrokeChar c =
     pictures
-        [ thickSegment strokeWidth (p1, p2)
+        [ thickSegment (p1, p2)
         | (p1, p2) <- glyphStrokes c
         ]
 
-thickSegment :: Float -> (Point, Point) -> Picture
-thickSegment w ((x1, y1), (x2, y2)) =
+-- Безопасный утолщённый отрезок (три параллельные линии)
+thickSegment :: (Point, Point) -> Picture
+thickSegment (p1, p2)
+    | not (isValidSegment (p1, p2)) = blank
+    | otherwise =
+        let (x1, y1) = p1
+            (x2, y2) = p2
+            dx = x2 - x1
+            dy = y2 - y1
+            len = sqrt (dx * dx + dy * dy)
+            w = strokeWidth
+            (nx, ny)
+                | len == 0  = (0, 0)
+                | otherwise = ((-dy / len) * w * 0.45, (dx / len) * w * 0.45)
+        in pictures
+            [ Line [(x1 + nx * o, y1 + ny * o), (x2 + nx * o, y2 + ny * o)]
+            | o <- [-1, 0, 1 :: Float]
+            ]
+
+-- Безопасный тонкий отрезок (для рёбер)
+thinSegment :: (Point, Point) -> Picture
+thinSegment (p1, p2)
+    | isValidSegment (p1, p2) = Line [p1, p2]
+    | otherwise               = blank
+
+-- Длина отрезка
+segmentLen :: (Point, Point) -> Float
+segmentLen ((x1, y1), (x2, y2)) =
     let dx = x2 - x1
         dy = y2 - y1
-        len = sqrt (dx * dx + dy * dy)
-        (nx, ny)
-            | len == 0  = (0, 0)
-            | otherwise = ((-dy / len) * w * 0.45, (dx / len) * w * 0.45)
-    in pictures
-        [ Line [(x1 + nx * o, y1 + ny * o), (x2 + nx * o, y2 + ny * o)]
-        | o <- [-1, 0, 1 :: Float]
-        ]
+    in sqrt (dx*dx + dy*dy)
 
+-- Валидация: длина > 0.01 и все координаты конечные числа
+isValidSegment :: (Point, Point) -> Bool
+isValidSegment ((x1, y1), (x2, y2)) =
+    segmentLen ((x1, y1), (x2, y2)) > 0.01
+    && all (\v -> not (isNaN v) && not (isInfinite v)) [x1, y1, x2, y2]
+
+-- Пиксельный шрифт (глифы 7×5)
 glyphStrokes :: Char -> [((Float, Float), (Float, Float))]
 glyphStrokes c = glyphToStrokes (lookupGlyphRows c)
 
@@ -190,6 +219,20 @@ verticalStrokes rows =
           y2 = glyphBottomY r
     ]
 
+glyphTopY :: Int -> Float
+glyphTopY row = fromIntegral (glyphHeight - row) * charPitch
+
+glyphBottomY :: Int -> Float
+glyphBottomY row = fromIntegral (glyphHeight - row - 1) * charPitch
+
+-- Рёбра между узлами (рисуем тонкими безопасными линиями)
+drawEdges :: [(Point, Point)] -> Picture
+drawEdges = Pictures . map thinSegment
+
+drawNodes :: [(Point, String)] -> Picture
+drawNodes = Pictures . map drawNode
+
+-- Таблица глифов
 glyphTable :: [(Char, [String])]
 glyphTable =
     [ (' ', replicate 7 ".....")
@@ -244,9 +287,4 @@ glyphTable =
     , ('Z', [ "#####", "....#", "...#.", "..#..", ".#...", "#....", "#####" ])
     , ('_', [ ".....", ".....", ".....", ".....", ".....", ".....", "#####" ])
     ]
-
-drawEdges :: [(Point, Point)] -> Picture
-drawEdges = Pictures . map (\(a, b) -> Color black $ Line [a, b])
-
-drawNodes :: [(Point, String)] -> Picture
-drawNodes = Pictures . map drawNode
+    
